@@ -36,6 +36,10 @@ function App() {
     setNewColumnTitle("");
   };
 
+  const handleDeleteColumn = (columnTitle: string) => {
+    setColumns((prevColumns) => prevColumns.filter((col) => col.title !== columnTitle))
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over) return;
@@ -91,10 +95,21 @@ function App() {
           </div>
         </div>
 
-        <div className="flex h-[600px] gap-6 overflow-x-auto px-6 pb-6">
+        <div className="flex h-[600px] gap-6 overflow-x-hidden overflow-y-auto px-6 pb-6">
           <SortableContext items={columns.map((col) => col.id)} strategy={horizontalListSortingStrategy}>
             {columns.map((col) => (
-              <Todo key={col.id} id={col.id} column={col} searchQuery={searchQuery} />
+              <div key={col.id} className="relative">
+                <div className="absolute top-2 right-4">
+                  <button
+                    onClick={() => handleDeleteColumn(col.title)}
+                    className="text-red-500 hover:text-red-700"
+                    title="Delete Column"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <Todo key={col.id} id={col.id} column={col} searchQuery={searchQuery} />
+              </div>
             ))}
           </SortableContext>
         </div>
@@ -102,5 +117,4 @@ function App() {
     </DndContext>
   );
 }
-
 export default App;

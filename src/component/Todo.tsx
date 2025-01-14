@@ -32,7 +32,7 @@ export const Todo = ({ id, column, searchQuery }: TodoProps) => {
   };
 
   return (
-    <div ref={setDroppableRef} className="bg-white shadow-lg p-4 rounded-lg w-[300px]">
+    <div ref={setDroppableRef} className="bg-white shadow-lg p-4 rounded-lg w-[300px] h-[550px] ">
       <h2 className="text-xl font-semibold mb-4">{column.title}</h2>
       <div className="flex space-x-4 mb-4">
         <input
