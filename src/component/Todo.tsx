@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 
 type TodoProps = {
-  searchQuery: string; // Search query passed from parent
+  title: string; // Title of the column
+  searchQuery: string; // Search query from the parent
 };
 
 type Todo = {
@@ -9,29 +10,29 @@ type Todo = {
   text: string;
 };
 
-const Todo = ({ searchQuery }: TodoProps) => {
+const Todo = ({ title, searchQuery }: TodoProps) => {
   const [tasks, setTasks] = useState<Todo[]>([]);
   const [newTask, setNewTask] = useState<string>("");
   const [editTaskId, setEditTaskId] = useState<number | null>(null);
   const [editText, setEditText] = useState<string>("");
 
   useEffect(() => {
-    const storedTasks = localStorage.getItem("tasks");
+    const storedTasks = localStorage.getItem(`tasks_${title}`);
     if (storedTasks) {
       setTasks(JSON.parse(storedTasks));
     }
-  }, []);
+  }, [title]);
 
   useEffect(() => {
     if (tasks.length === 0) {
-      return localStorage.removeItem("tasks");
+      return localStorage.removeItem(`tasks_${title}`);
     }
     try {
-      localStorage.setItem("tasks", JSON.stringify(tasks));
+      localStorage.setItem(`tasks_${title}`, JSON.stringify(tasks));
     } catch (error) {
       console.error("Error saving tasks to localStorage:", error);
     }
-  }, [tasks]);
+  }, [tasks, title]);
 
   const handleAddTask = () => {
     if (newTask.trim() === "") return;
@@ -63,14 +64,14 @@ const Todo = ({ searchQuery }: TodoProps) => {
     setEditText("");
   };
 
-  // Filter tasks based on searchQuery from parent
   const filteredTasks = tasks.filter((task) =>
     task.text.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
     <div className="max-w-md h-[600px] p-4 bg-white shadow-lg rounded-lg">
-        {/* {title} */}
+      <h2 className="text-xl font-semibold mb-4">{title}</h2>
+
       <div className="flex space-x-4 mb-4">
         <input
           type="text"
