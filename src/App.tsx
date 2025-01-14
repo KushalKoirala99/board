@@ -1,11 +1,24 @@
 import { useState } from "react";
-import Todo from "./component/Todo";
+import { DndContext, DragEndEvent, closestCenter } from "@dnd-kit/core";
+import {
+  SortableContext,
+  horizontalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { Todo } from "./component/Todo";
 
 
-
+type Task = {
+  id: number;
+  title: string;
+  tasks: { id: number; text: string; }[]
+}
 function App() {
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [columns, setColumns] = useState<string[]>(["Todo 1", "In Progress", "Done"]);
+  const [columns, setColumns] = useState<{ id: string; title: string; tasks: Task[] }[]>([
+    { id: "todo-1", title: "Todo 1", tasks: [] },
+    { id: "in-progress", title: "In Progress", tasks: [] },
+    { id: "done", title: "Done", tasks: [] },
+  ]);
   const [newColumnTitle, setNewColumnTitle] = useState<string>("");
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -14,72 +27,79 @@ function App() {
 
   const handleAddColumn = () => {
     if (newColumnTitle.trim() === "") return;
-    setColumns((prevColumns) => [...prevColumns, newColumnTitle]);
+    const newColumn = {
+      id: `column-${Date.now()}`,
+      title: newColumnTitle,
+      tasks: [],
+    };
+    setColumns((prev) => [...prev, newColumn]);
     setNewColumnTitle("");
   };
-  
-  const handleDeleteColumn = (title: string) => {
-    setColumns((prevColumns) => prevColumns.filter((column) => column !== title));
-    localStorage.removeItem(`tasks_${title}}`);
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+
+    const [sourceColumnId, taskId] = active.id.toString().split(":");
+    const destinationColumnId = over.id;
+
+    if (sourceColumnId !== destinationColumnId) {
+      setColumns((prevColumns) => {
+        const sourceColumn = prevColumns.find((col) => col.id === sourceColumnId)!;
+        // const destinationColumn = prevColumns.find((col) => col.id === destinationColumnId)!;
+        const task = sourceColumn.tasks.find((t) => t.id === Number(taskId));
+
+        if (!task) return prevColumns;
+
+        return prevColumns.map((col) => {
+          if (col.id === sourceColumnId) {
+            return { ...col, tasks: col.tasks.filter((t) => t.id !== Number(taskId)) };
+          }
+          if (col.id === destinationColumnId) {
+            return { ...col, tasks: [...col.tasks, task] };
+          }
+          return col;
+        });
+      });
+    }
   };
 
   return (
-    <div className="flex-col h-screen overflow-hidden">
-    <div className="p-6 flex  justify-end gap-5">
-      {/* Search Bar */}
-      <div className="mb-6">
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={handleSearchChange}
-          placeholder="Search tasks across all Todo lists..."
-          className="w-[300px] p-3 border rounded-md border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-      </div>
-
-      {/* Add New Column */}
-      <div className="flex items-center gap-4 mb-6">
-        <input
-          type="text"
-          value={newColumnTitle}
-          onChange={(e) => setNewColumnTitle(e.target.value)}
-          placeholder="New column title..."
-          className="w-auto p-3 border rounded-md border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-        <button
-          onClick={handleAddColumn}
-          className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition"
-        >
-          Add Column
-        </button>
-      </div>
-      </div>
-
-      {/* Render Todo Components */}
-      <div
-        className="flex gap-6 overflow-x-auto px-6 pb-6"
-        style={{ scrollBehavior: "smooth" }}
-      >
-        {columns.map((title, index) => (
-          <div
-            key={index}
-            className="flex-shrink-0 relative"
-            
-          >
-            <div className="absolute top-2 right-4">
-              <button
-                onClick={() => handleDeleteColumn(title)}
-                className="text-red-500 hover:text-red-700"
-                title="Delete Column"
-              >
-                ✕
-              </button>
-            </div>
-            <Todo title={title} searchQuery={searchQuery} />
+    <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <div className="flex-col h-screen overflow-hidden">
+        <div className="p-6 flex justify-end gap-5">
+          <div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={handleSearchChange}
+              placeholder="Search tasks..."
+              className="p-3 border rounded-md"
+            />
           </div>
-        ))}
+          <div>
+            <input
+              type="text"
+              value={newColumnTitle}
+              onChange={(e) => setNewColumnTitle(e.target.value)}
+              placeholder="New column title..."
+              className="p-3 border rounded-md"
+            />
+            <button onClick={handleAddColumn} className="bg-green-500 text-white px-3 py-2 ml-2">
+              Add Column
+            </button>
+          </div>
+        </div>
+
+        <div className="flex h-[600px] gap-6 overflow-x-auto px-6 pb-6">
+          <SortableContext items={columns.map((col) => col.id)} strategy={horizontalListSortingStrategy}>
+            {columns.map((col) => (
+              <Todo key={col.id} id={col.id} column={col} searchQuery={searchQuery} />
+            ))}
+          </SortableContext>
+        </div>
       </div>
-    </div>
+    </DndContext>
   );
 }
 
